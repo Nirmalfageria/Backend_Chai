@@ -20,3 +20,5 @@ const cloudinaryUploader = async (localFilePath) => {
     // remove the file from the local cloud
   }
 };
+
+export default cloudinaryUploader
