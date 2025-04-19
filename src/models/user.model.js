@@ -25,8 +25,12 @@ const UserSchema = new Schema(
       lowercase: true,
       index: true,
     },
-    avatar: String,
-    coverImage: String,
+    avatar: {
+      type: String,
+    },
+    coverImage: {
+      type: String,
+    },
     watchHistory: {
       type: Schema.Types.ObjectId,
       ref: "Video",
@@ -80,4 +84,5 @@ UserSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-export const User = mongoose.model("User", UserSchema);
+const User = mongoose.model("User", UserSchema);
+export default User;

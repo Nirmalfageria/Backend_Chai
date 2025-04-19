@@ -7,4 +7,4 @@ constructor(statusCode,data,message = "success"){
 }
 }
 
-export default ApiResponse
+export default  ApiResponse
