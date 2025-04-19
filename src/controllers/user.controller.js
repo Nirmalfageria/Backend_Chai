@@ -25,7 +25,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // 4. Handle file uploads
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
-
+// check first avatar is there or not and then [0] means url is there or not
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar is required");
   }
@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while registering the user");
   }
 
-  // 8. Return success response
+  // 8. Return success response❤️
   return res.status(201).json(
     new ApiResponse(201, userCreated, "User created successfully")
   );
