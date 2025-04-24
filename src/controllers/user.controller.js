@@ -13,11 +13,10 @@ const generateAccessAndRefreshToken = async (userId) => {
     const accessToken = await user.generateAccessToken();
 
     //save the token
-    user.refreshToken = refreshToken
- await user.save({validateBeforeSave:false})
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
- return {accessToken,refreshToken }
-
+    return { accessToken, refreshToken };
   } catch (error) {
     throw new ApiError(
       500,
@@ -47,21 +46,55 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "password id wrong");
   }
 
-  const{accessToken,refreshToken} = await generateAccessAndRefreshToken(userexist._id)
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    userexist._id
+  );
 
-  const loggedInUser = User.findById(userexist._id).select("-password -refreshToken")
-  const options ={
+  const loggedInUser = User.findById(userexist._id).select(
+    "-password -refreshToken"
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "user looged in successfully"
+      )
+    );
+});
+//logout method
+
+const loggedOutUser = asyncHandler(async (req, res) => {
+
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set:{
+        refreshToken:undefined
+      }
+    },{
+      new:true
+    }
+  ) 
+  const options= {
     httpOnly:true,
-    secure:true 
+    secure:true
   }
 
-  return res.status(200).cookie("accessToken",accessToken).cookie("refreshToken",refreshToken)
-});
-
-
-
-
-// user register page
+  return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(new ApiResponse(200,"user looged out suuessfully"))
+})
 const registerUser = asyncHandler(async (req, res) => {
   // 1. Destructure request body
   const { fullName, userName, email, password } = req.body;
@@ -123,4 +156,4 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, userCreated, "User created successfully"));
 });
 
-export default { registerUser, loginUser };
+export { registerUser, loginUser, loggedOutUser };
