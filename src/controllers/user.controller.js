@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 import cloudinaryUploader from "../utils/cloudinary.js";
 import ApiResponse from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
-// login setup
+
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await user.findById(userId);
@@ -24,10 +24,11 @@ const generateAccessAndRefreshToken = async (userId) => {
     );
   }
 };
+// login setup
 const loginUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body();
 
-  if (!username || !email || !password) {
+  if (!(username || email)) {
     throw new ApiError(400, "username or password is required");
   }
 
@@ -75,7 +76,6 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 //logout method
-
 const loggedOutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
@@ -159,52 +159,107 @@ const registerUser = asyncHandler(async (req, res) => {
     .status(201)
     .json(new ApiResponse(201, userCreated, "User created successfully"));
 });
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingToken = cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingToken) {
     throw new ApiError(401, "Unathuorised request");
   }
- try {
-   const decodedToken = jwt.verify(
-     incomingToken,
-     process.env.REFRESH_TOKEN_SECRET
-   );
- 
-   const user = User.findById(decodedToken?._id);
- 
-   if (!user) {
-     throw new ApiError(401, "Invaild Token");
-   }
- 
-   if (incomingToken !== user?.refreshToken) {
-     throw new ApiError(402, "Refresh Token is experied or Invalid");
-   }
- 
-   const options = {
-     httpOnly: true,
-     secure: true,
-   };
- 
-   const { accessToken, newRefreshToken } = generateAccessAndRefreshToken(
-     user?._id
-   );
- 
-   res
-     .status(200)
-     .cookie("accessToken", accessToken)
-     .cookie("refreshToken", newRefreshToken)
-     .json(
-       new ApiResponse(
-         200,
- 
-         { accessToken, refreshToken: newRefreshToken },
-         "Access Token refreshed"
-       )
-     );
- } catch (error) {
-  throw new ApiError(401,error?.message|| "Invalid refersh token")
- }
+  try {
+    const decodedToken = jwt.verify(
+      incomingToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const user = User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invaild Token");
+    }
+
+    if (incomingToken !== user?.refreshToken) {
+      throw new ApiError(402, "Refresh Token is experied or Invalid");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, newRefreshToken } = generateAccessAndRefreshToken(
+      user?._id
+    );
+
+    res
+      .status(200)
+      .cookie("accessToken", accessToken)
+      .cookie("refreshToken", newRefreshToken)
+      .json(
+        new ApiResponse(
+          200,
+
+          { accessToken, refreshToken: newRefreshToken },
+          "Access Token refreshed"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refersh token");
+  }
 });
 
-export { registerUser, loginUser, loggedOutUser,refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user?._id);
+  const isPasswordCorrect = await isPasswordCorrect(oldPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "password is incorrect");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: true });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "password updated successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(200, req.user, "current user fetched successfully");
+});
+const updateUser = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  if (!fullName || !email) {
+    throw new ApiError(400, "all fields are required");
+  }
+
+  const user = await User.findById(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email: email,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  loggedOutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateUser
+};
