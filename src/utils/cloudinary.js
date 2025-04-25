@@ -2,11 +2,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
 // Debug: Show actual values being used
-console.log('Actual Cloudinary Config:', {
-  cloud_name:"dsev5t0of",
-  api_key:"825259773958718",
-  api_secret:"cYY52xbwOShHOjxi8-HHTSwieCY" // This line shows the typo 
-});
+// console.log('Actual Cloudinary Config:', {
+//   cloud_name:"dsev5t0of",
+//   api_key:"825259773958718",
+//   api_secret:"cYY52xbwOShHOjxi8-HHTSwieCY" // This line shows the typo 
+// });
 
 // Initialize with proper error checking
 // if (!process.env.CLOUDINARY_CLOUD_NAME || 
