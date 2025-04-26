@@ -26,14 +26,14 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 // login setup
 const loginUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body();
+  const { userName, email, password } = req.body();
 
-  if (!(username || email)) {
+  if (!(userName || email)) {
     throw new ApiError(400, "username or password is required");
   }
 
   const userexist = await User.findOne({
-    $or: [{ username, email }],
+    $or: [{ userName, email }],
   });
   if (!userexist) {
     throw new ApiError(400, "user not found");
@@ -268,9 +268,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findByIdAndUpdate(
-    req.user._id,  
+    req.user._id,
     {
-      $set:{avatar: avatar.url}
+      $set: { avatar: avatar.url },
     },
     {
       new: true,
@@ -281,6 +281,77 @@ const updateAvatar = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "avatar updated successfully"));
 });
+
+const getChannelDetails = asyncHandler(async (req, res) => {
+  const { userName } = req.params;
+
+
+  if (!userName?.trim()) {
+    throw new ApiError(400, "username is required");
+  }
+  //pipelines of the mongoDB
+  const channel = await User.aggregate([
+    {
+      $match: {
+        userName: userName.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        userName: 1,
+        email: 1,
+        avatar: 1,
+        coverImage: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+      },
+    },
+  ]);
+  if (!channel?.length) {
+    throw new ApiError(404, "channel does not exist");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "Chennel details fetched successfully")
+    );
+});
 export {
   registerUser,
   loginUser,
@@ -289,5 +360,5 @@ export {
   changeCurrentPassword,
   getCurrentUser,
   updateUser,
-  updateAvatar
+  updateAvatar,
 };
