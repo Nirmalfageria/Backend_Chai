@@ -351,7 +351,7 @@ const getChannelDetails = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, channel[0], "Chennel details fetched successfully")
     );
-});
+}); 
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
@@ -408,4 +408,5 @@ export {
   updateUser,
   updateAvatar,
   getChannelDetails,
+  getWatchHistory
 };
