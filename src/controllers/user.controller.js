@@ -8,58 +8,77 @@ import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
-    const user = await user.findById(userId);
+    // Fetch the user instance from the database
+    const user = await User.findById(userId);
 
-    const refreshToken = await user.generateRefreshToken();
-    const accessToken = await user.generateAccessToken();
+    // Check if the user exists
+    if (!user) {
+      throw new ApiError(400, "User not found");
+    }
 
-    //save the token
+    // Generate tokens using the instance methods
+    const refreshToken = user.generateAccesssToken(); // Use the instance method
+    const accessToken = user.generateRefreshToken(); // Use the instance method
+
+    // Save the refresh token to the user's document
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    const savedUser = await user.save({ validateBeforeSave: false });
 
+    // Log the saved user document
+    // console.log(savedUser);
+
+    // Return the generated tokens
     return { accessToken, refreshToken };
   } catch (error) {
+    console.error(error); // Log the error for better debugging
     throw new ApiError(
       500,
-      "something went wrong while generating the access and refersh token"
+      "Something went wrong while generating the access and refresh token"
     );
   }
 };
+
 // login setup
 const loginUser = asyncHandler(async (req, res) => {
-  const { userName, email, password } = req.body();
+  const { userName, email, password } = req.body;
 
-  if (!(userName || email)) {
-    throw new ApiError(400, "username or password is required");
+  // Validate input
+  if (!userName && !email) {
+    throw new ApiError(400, "Username or email is required");
   }
 
-  const userexist = await User.findOne({
-    $or: [{ userName, email }],
+  // Find user (corrected query syntax)
+  const user = await User.findOne({
+    $or: [{ userName }, { email }], // Fixed syntax - separate conditions
   });
-  if (!userexist) {
-    throw new ApiError(400, "user not found");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
 
-  // use user (use small u beacuse this is user that we create in the UserSchema and there we define the our own methods and these are not mongoose methods so we can not access them by User so use user)
-
-  const ispasswordValid = await userexist.isPasswordCorrect(password);
-
-  if (!ispasswordValid) {
-    throw new ApiError(400, "password id wrong");
+  // Validate password (fixed logic)
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (isPasswordValid) {
+    throw new ApiError(401, "Invalid credentials");
   }
 
+  // Generate tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    userexist._id
+    user._id
   );
 
-  const loggedInUser = User.findById(userexist._id).select(
+  // Get logged-in user details (await the query)
+  const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
+
+  // Set cookie options
   const options = {
     httpOnly: true,
     secure: true,
   };
 
+  // Return response
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -68,11 +87,11 @@ const loginUser = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          user: loggedInUser,
+          user: loggedInUser, // Changed from userexist to user
           accessToken,
           refreshToken,
         },
-        "user looged in successfully"
+        "User logged in successfully" 
       )
     );
 });
@@ -351,7 +370,7 @@ const getChannelDetails = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, channel[0], "Chennel details fetched successfully")
     );
-}); 
+});
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
@@ -396,7 +415,13 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   ]);
   return res
     .status(200)
-    .json(new ApiResponse(200, user[0].watcHistroy, "WatchHistory fetched successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watcHistroy,
+        "WatchHistory fetched successfully"
+      )
+    );
 });
 export {
   registerUser,
@@ -408,5 +433,5 @@ export {
   updateUser,
   updateAvatar,
   getChannelDetails,
-  getWatchHistory
+  getWatchHistory,
 };
