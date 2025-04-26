@@ -55,7 +55,22 @@ UserSchema.pre("save", async function (next) {
 });
 
 UserSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  // 1. Validate input parameters
+  if (!password) {
+    throw new Error("Password argument is required");
+  }
+
+  if (!this.password) {
+    throw new Error("No password hash exists for this user");
+  }
+
+  // 2. Perform comparison with error handling
+  try {
+    return await bcrypt.compare(password, this.password);
+  } catch (error) {
+    console.error("Password comparison error:", error);
+    throw new Error("Failed to verify password");
+  }
 };
 
 UserSchema.methods.generateAccesssToken = function () {

@@ -91,7 +91,7 @@ const loginUser = asyncHandler(async (req, res) => {
           accessToken,
           refreshToken,
         },
-        "User logged in successfully" 
+        "User logged in successfully"
       )
     );
 });
@@ -117,7 +117,7 @@ const loggedOutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200,{}, "user loged out suuessfully"));
+    .json(new ApiResponse(200, {}, "user loged out suuessfully"));
 });
 const registerUser = asyncHandler(async (req, res) => {
   // 1. Destructure request body
@@ -230,15 +230,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-
+  // console.log(oldPassword, newPassword);
   const user = await User.findById(req.user?._id);
-  const isPasswordCorrect = await isPasswordCorrect(oldPassword);
-  if (!isPasswordCorrect) {
+  // console.log(user)
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  // console.log(isPasswordCorrect);
+  if (isPasswordCorrect) {
     throw new ApiError(400, "password is incorrect");
   }
 
   user.password = newPassword;
-  await user.save({ validateBeforeSave: true });
+  user = await user.save({ validateBeforeSave: true });
 
   return res
     .status(200)
