@@ -117,7 +117,7 @@ const loggedOutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, "user looged out suuessfully"));
+    .json(new ApiResponse(200,{}, "user loged out suuessfully"));
 });
 const registerUser = asyncHandler(async (req, res) => {
   // 1. Destructure request body
